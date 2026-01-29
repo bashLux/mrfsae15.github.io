@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analyse des Parkings et Stations Vélos de Montpellier | SAE Open Data</title>
+  <meta name="description" content="Étude analytique de l'occupation des parkings publics et stations vélos de Montpellier à partir des données Open Data. Projet universitaire BUT.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ========== RESET & BASE ========== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --color-primary: #1e3a5f;
+      --color-primary-light: #2d5a8a;
+      --color-secondary: #64748b;
+      --color-accent: #0ea5e9;
+      --color-background: #f8fafc;
+      --color-surface: #ffffff;
+      --color-border: #e2e8f0;
+      --color-text: #1e293b;
+      --color-text-muted: #64748b;
+      --color-success: #22c55e;
+      --color-warning: #f59e0b;
+      --color-danger: #ef4444;
+      --font-sans: 'Inter', system-ui, sans-serif;
+      --font-serif: 'Source Serif 4', Georgia, serif;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+      --radius: 8px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--color-background);
+      color: var(--color-text);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    /* ========== TYPOGRAPHY ========== */
+    h1, h2, h3, h4 {
+      font-family: var(--font-serif);
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--color-primary);
+    }
+
+    h1 { font-size: 2.25rem; }
+    h2 { font-size: 1.5rem; margin-bottom: 1rem; }
+    h3 { font-size: 1.25rem; margin-bottom: 0.75rem; }
+    h4 { font-size: 1.125rem; }
+
+    p { margin-bottom: 1rem; color: var(--color-text-muted); }
+    
+    a {
+      color: var(--color-accent);
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
+
+    strong { color: var(--color-text); }
+
+    /* ========== LAYOUT ========== */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ========== HEADER ========== */
+    .header {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+      color: white;
+      padding: 3rem 0;
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      color: white;
+      margin-bottom: 1rem;
+    }
+
+    .header p {
+      color: rgba(255,255,255,0.85);
+      max-width: 800px;
+    }
+
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .header-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .header-meta-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .header-meta-value {
+      font-weight: 500;
+      color: white;
+    }
+
+    /* ========== TABLE OF CONTENTS ========== */
+    .toc {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .toc h2 {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      color: var(--color-text);
+    }
+
+    .toc-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .toc-list a {
+      display: block;
+      padding: 0.5rem 0.75rem;
+      border-radius: calc(var(--radius) - 2px);
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .toc-list a:hover {
+      background: var(--color-background);
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    /* ========== SECTIONS ========== */
+    .section {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--color-primary);
+    }
+
+    .section-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      opacity: 0.3;
+      font-family: var(--font-serif);
+    }
+
+    .section h2 {
+      margin-bottom: 0;
+    }
+
+    .subsection-title {
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    /* ========== ANALYSIS BLOCKS ========== */
+    .analysis-block {
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin: 1.5rem 0;
+    }
+
+    .analysis-block h4 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .analysis-block p { margin-bottom: 0.75rem; font-size: 0.9375rem; }
+    .analysis-block p:last-child { margin-bottom: 0; }
+
+    .analysis-block ul {
+      margin: 0.75rem 0;
+      padding-left: 1.5rem;
+      color: var(--color-text-muted);
+      font-size: 0.9375rem;
+    }
+
+    .analysis-block li { margin-bottom: 0.375rem; }
+
+    .analysis-observation {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+    }
+    .analysis-observation h4 { color: #1d4ed8; }
+
+    .analysis-tendance {
+      background: #f0fdf4;
+      border-left: 4px solid #22c55e;
+    }
+    .analysis-tendance h4 { color: #15803d; }
+
+    .analysis-alerte {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+    }
+    .analysis-alerte h4 { color: #b45309; }
+
+    .analysis-conclusion {
+      background: #faf5ff;
+      border-left: 4px solid #a855f7;
+    }
+    .analysis-conclusion h4 { color: #7e22ce; }
+
+    /* ========== STATS TABLE ========== */
+    .stats-table-wrapper {
+      overflow-x: auto;
+      margin: 1.5rem 0;
+    }
+
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .stats-table th,
+    .stats-table td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .stats-table th {
+      background: var(--color-background);
+      font-weight: 600;
+      color: var(--color-text);
+      white-space: nowrap;
+    }
+
+    .stats-table tr:hover {
+      background: var(--color-background);
+    }
+
+    .stats-table td:first-child {
+      font-weight: 500;
+      color: var(--color-text);
+    }
+
+    /* ========== FIGURE ========== */
+    .figure {
+      margin: 1.5rem 0;
+      background: var(--color-background);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .figure-image {
+      width: 100%;
+      height: auto;
+      display: block;
+      cursor: zoom-in;
+    }
+
+    .figure-caption {
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      border-top: 1px solid var(--color-border);
+    }
+
+    .figure-caption strong {
+      color: var(--color-text);
+    }
+
+    /* ========== DATA CATALOG ========== */
+    .data-catalog {
+      margin: 1.5rem 0;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .catalog-layout {
+      display: flex;
+      min-height: 400px;
+    }
+
+    .catalog-sidebar {
+      width: 280px;
+      flex-shrink: 0;
+      background: var(--color-background);
+      border-right: 1px solid var(--color-border);
+      overflow-y: auto;
+      max-height: 600px;
+    }
+
+    .catalog-main {
+      flex: 1;
+      min-width: 0;
+      background: var(--color-surface);
+    }
+
+    /* Accordion */
+    .accordion-item {
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .accordion-item:last-child {
+      border-bottom: none;
+    }
+
+    .accordion-trigger {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--color-text);
+      transition: background 0.2s;
+    }
+
+    .accordion-trigger:hover {
+      background: rgba(0,0,0,0.05);
+    }
+
+    .accordion-trigger.active {
+      background: rgba(14, 165, 233, 0.1);
+      color: var(--color-primary);
+    }
+
+    .accordion-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+
+    .accordion-trigger.active .accordion-icon {
+      transform: rotate(90deg);
+    }
+
+    .accordion-badge {
+      margin-left: auto;
+      font-size: 0.75rem;
+      padding: 0.125rem 0.5rem;
+      background: var(--color-border);
+      border-radius: 9999px;
+      color: var(--color-text-muted);
+    }
+
+    .accordion-content {
+      display: none;
+      padding: 0.5rem;
+      background: var(--color-surface);
+    }
+
+    .accordion-content.open {
+      display: block;
+    }
+
+    .accordion-desc {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      padding: 0 0.5rem 0.5rem;
+    }
+
+    /* Catalog Items */
+    .catalog-item {
+      width: 100%;
+      padding: 0.625rem 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: transparent;
+      border: none;
+      border-radius: calc(var(--radius) - 4px);
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted);
+      transition: all 0.2s;
+    }
+
+    .catalog-item:hover {
+      background: var(--color-background);
+      color: var(--color-text);
+    }
+
+    .catalog-item.active {
+      background: var(--color-primary);
+      color: white;
+    }
+
+    .catalog-item-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.5;
+    }
+
+    .catalog-item.active .catalog-item-dot {
+      background: white;
+      opacity: 1;
+    }
+
+    /* Catalog Display */
+    .catalog-display {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .catalog-display-header {
+      padding: 1rem 1.25rem;
+      background: var(--color-background);
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .catalog-display-title {
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 0.25rem;
+    }
+
+    .catalog-display-desc {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin: 0;
+    }
+
+    .btn-zoom {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.5rem 0.875rem;
+      background: rgba(14, 165, 233, 0.1);
+      color: var(--color-primary);
+      border: none;
+      border-radius: calc(var(--radius) - 2px);
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-zoom:hover {
+      background: rgba(14, 165, 233, 0.2);
+    }
+
+    .catalog-display-image {
+      flex: 1;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: zoom-in;
+    }
+
+    .catalog-display-image img {
+      max-width: 100%;
+      max-height: 400px;
+      object-fit: contain;
+    }
+
+    .catalog-display-image:hover::after {
+      content: "Cliquez pour agrandir";
+      position: absolute;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.375rem 0.75rem;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      font-size: 0.75rem;
+      border-radius: 9999px;
+    }
+
+    .catalog-caption {
+      padding: 0.875rem 1rem;
+      text-align: center;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted);
+      border-top: 1px solid var(--color-border);
+      background: var(--color-background);
+    }
+
+    .catalog-caption strong {
+      color: var(--color-text);
+    }
+
+    .catalog-empty {
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* ========== ZOOM MODAL ========== */
+    .zoom-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0,0,0,0.92);
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .zoom-modal.open {
+      display: flex;
+    }
+
+    .zoom-modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .zoom-modal-close:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .zoom-modal-info {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      color: white;
+    }
+
+    .zoom-modal-title {
+      font-weight: 500;
+      font-size: 1.125rem;
+    }
+
+    .zoom-modal-desc {
+      font-size: 0.875rem;
+      color: rgba(255,255,255,0.7);
+      margin-top: 0.25rem;
+    }
+
+    .zoom-modal-image {
+      max-width: 95%;
+      max-height: 85vh;
+      object-fit: contain;
+    }
+
+    .zoom-modal-hint {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.5);
+      font-size: 0.75rem;
+    }
+
+    /* ========== TYPOGRAPHY BLOCKS ========== */
+    .type-block {
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      margin: 1rem 0;
+    }
+
+    .type-block-blue {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+    }
+
+    .type-block-green {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+    }
+
+    .type-item {
+      margin-bottom: 0.75rem;
+    }
+
+    .type-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .type-label {
+      font-weight: 500;
+      color: var(--color-text);
+    }
+
+    .type-value {
+      color: var(--color-text-muted);
+      margin-left: 0.5rem;
+    }
+
+    /* ========== FOOTER ========== */
+    .footer {
+      margin-top: 3rem;
+      padding: 2rem 0;
+      text-align: center;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .footer p {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+    }
+
+    .footer strong {
+      color: var(--color-text);
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+      h1 { font-size: 1.75rem; }
+      h2 { font-size: 1.25rem; }
+
+      .section {
+        padding: 1.25rem;
+      }
+
+      .catalog-layout {
+        flex-direction: column;
+      }
+
+      .catalog-sidebar {
+        width: 100%;
+        max-height: 300px;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      .header-meta {
+        flex-direction: column;
+        gap: 1rem;
+      }
+    }
+
+    /* ========== ICONS (SVG inline) ========== */
+    .icon {
+      width: 1em;
+      height: 1em;
+      display: inline-block;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="container">
+      <h1>Analyse de l'Occupation des Parkings et Stations Vélos de Montpellier</h1>
+      <p>
+        Étude analytique réalisée à partir des données Open Data de Montpellier Méditerranée Métropole. 
+        Ce rapport présente une analyse détaillée des taux d'occupation des parkings publics et des stations 
+        de vélos en libre-service (VéloMagg) sur une période de 10 jours.
+      </p>
+      <div class="header-meta">
+        <div class="header-meta-item">
+          <span class="header-meta-label">Période d'étude</span>
+          <span class="header-meta-value">25/12/2025 — 04/01/2026</span>
+        </div>
+        <div class="header-meta-item">
+          <span class="header-meta-label">Source des données</span>
+          <span class="header-meta-value">Open Data Montpellier 3M</span>
+        </div>
+        <div class="header-meta-item">
+          <span class="header-meta-label">Type de projet</span>
+          <span class="header-meta-value">SAE — BUT Informatique</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- TABLE OF CONTENTS -->
+    <nav class="toc">
+      <h2>Table des matières</h2>
+      <ul class="toc-list">
+        <li><a href="#introduction">1. Introduction et méthodologie</a></li>
+        <li><a href="#vue-ensemble">2. Vue d'ensemble des parkings</a></li>
+        <li><a href="#parkings-forte-occupation">3. Parkings à forte occupation</a></li>
+        <li><a href="#parkings-faible-occupation">4. Parkings à faible occupation</a></li>
+        <li><a href="#parkings-constants">5. Parkings à occupation constante</a></li>
+        <li><a href="#catalogue">6. Catalogue interactif des données</a></li>
+        <li><a href="#synthese">7. Synthèse et conclusions</a></li>
+      </ul>
+    </nav>
+
+    <!-- SECTION 1: INTRODUCTION -->
+    <section id="introduction" class="section">
+      <div class="section-header">
+        <span class="section-number">01</span>
+        <h2>Introduction et méthodologie</h2>
+      </div>
+      
+      <p>
+        Cette étude s'inscrit dans le cadre d'un projet universitaire (SAE) visant à exploiter les données 
+        ouvertes mises à disposition par Montpellier Méditerranée Métropole. L'objectif est d'analyser les 
+        comportements d'occupation des infrastructures de mobilité urbaine afin d'en dégager des tendances 
+        et des recommandations.
+      </p>
+
+      <h3 class="subsection-title">1.1 Contexte de l'étude</h3>
+      <p>
+        Les données analysées proviennent du portail Open Data de Montpellier et couvrent une période 
+        spécifique : les fêtes de fin d'année 2025-2026. Cette période présente un intérêt particulier 
+        car elle correspond à des comportements de mobilité atypiques (vacances scolaires, commerces, 
+        événements festifs).
+      </p>
+
+      <h3 class="subsection-title">1.2 Données collectées</h3>
+      <p>
+        L'analyse porte sur <strong>10 parkings publics</strong> et <strong>15 stations de vélos VéloMagg</strong>. 
+        Pour chaque infrastructure, nous disposons du taux d'occupation relevé à intervalles réguliers, 
+        permettant de tracer l'évolution temporelle de l'utilisation.
+      </p>
+
+      <div class="analysis-block analysis-observation">
+        <h4>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4M12 8h.01"/>
+          </svg>
+          Note méthodologique
+        </h4>
+        <p>
+          Les graphiques présentés dans ce rapport montrent l'évolution du <strong>taux d'occupation en pourcentage</strong> 
+          au fil du temps. Une valeur de 100% indique une saturation complète, tandis qu'une valeur proche de 0% 
+          suggère une infrastructure quasi-vide. Les données ont été nettoyées et agrégées pour faciliter la lecture.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION 2: VUE D'ENSEMBLE -->
+    <section id="vue-ensemble" class="section">
+      <div class="section-header">
+        <span class="section-number">02</span>
+        <h2>Vue d'ensemble des parkings</h2>
+      </div>
+
+      <p>
+        Avant d'entrer dans le détail de chaque parking, cette section présente une vue synthétique 
+        des 10 parkings étudiés avec leurs principales caractéristiques statistiques.
+      </p>
+
+      <h3 class="subsection-title">2.1 Tableau récapitulatif</h3>
+
+      <div class="stats-table-wrapper">
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>Parking</th>
+              <th>Occupation moyenne</th>
+              <th>Min</th>
+              <th>Max</th>
+              <th>Comportement</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Arc de Triomphe</td>
+              <td>72%</td>
+              <td>54%</td>
+              <td>88%</td>
+              <td>Cyclique marqué</td>
+            </tr>
+            <tr>
+              <td>Comédie</td>
+              <td>52%</td>
+              <td>27%</td>
+              <td>90%</td>
+              <td>Cyclique fort</td>
+            </tr>
+            <tr>
+              <td>Gambetta</td>
+              <td>58%</td>
+              <td>35%</td>
+              <td>69%</td>
+              <td>Stable</td>
+            </tr>
+            <tr>
+              <td>Foch</td>
+              <td>18%</td>
+              <td>8%</td>
+              <td>22%</td>
+              <td>Faible</td>
+            </tr>
+            <tr>
+              <td>Circé</td>
+              <td>18%</td>
+              <td>13%</td>
+              <td>21%</td>
+              <td>Très stable bas</td>
+            </tr>
+            <tr>
+              <td>Occitanie</td>
+              <td>15%</td>
+              <td>11%</td>
+              <td>17%</td>
+              <td>Constant bas</td>
+            </tr>
+            <tr>
+              <td>Garcia Lorca</td>
+              <td>5%</td>
+              <td>3%</td>
+              <td>7%</td>
+              <td>Quasi-vide</td>
+            </tr>
+            <tr>
+              <td>Mosson</td>
+              <td>16%</td>
+              <td>2%</td>
+              <td>91%</td>
+              <td>Pic événementiel</td>
+            </tr>
+            <tr>
+              <td>Gaumont OUEST</td>
+              <td>98%</td>
+              <td>97%</td>
+              <td>100%</td>
+              <td>Suspect (constant)</td>
+            </tr>
+            <tr>
+              <td>Gaumont-Circe</td>
+              <td>60%</td>
+              <td>60%</td>
+              <td>60%</td>
+              <td>Suspect (constant)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="analysis-block analysis-observation">
+        <h4>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4M12 8h.01"/>
+          </svg>
+          Lecture du tableau
+        </h4>
+        <p>
+          Ce tableau permet d'identifier rapidement trois grandes catégories de parkings : les parkings 
+          à <strong>forte occupation</strong> (Arc de Triomphe, Comédie, Gambetta), ceux à <strong>faible occupation</strong> 
+          (Foch, Circé, Occitanie, Garcia Lorca, Mosson), et enfin les parkings présentant des 
+          <strong>données suspectes</strong> (Gaumont OUEST, Gaumont-Circe) avec des valeurs anormalement constantes.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION 3: PARKINGS FORTE OCCUPATION -->
+    <section id="parkings-forte-occupation" class="section">
+      <div class="section-header">
+        <span class="section-number">03</span>
+        <h2>Parkings à forte occupation</h2>
+      </div>
+
+      <p>
+        Cette section analyse en détail les parkings présentant les taux d'occupation les plus élevés. 
+        Ces infrastructures, situées principalement dans le centre-ville, montrent des cycles d'utilisation 
+        prononcés correspondant aux rythmes de la vie urbaine.
+      </p>
+
+      <h3 class="subsection-title">3.1 Parking Arc de Triomphe</h3>
+      
+      <figure class="figure">
+        <img src="./images/capture-decran-2026-01-20-171525.png" alt="Graphique d'occupation du parking Arc de Triomphe" class="figure-image" onclick="openZoom(this.src, 'Parking Arc de Triomphe', 'Évolution du taux d\'occupation')">
+        <figcaption class="figure-caption">
+          <strong>Figure 1</strong> — Évolution du taux d'occupation du parking Arc de Triomphe (25/12/2025 - 04/01/2026)
+        </figcaption>
+      </figure>
+
+      <div class="analysis-block analysis-observation">
+        <h4>Observations clés</h4>
+        <p>
+          Le parking Arc de Triomphe présente le taux d'occupation moyen le plus élevé de l'échantillon (72%). 
+          On observe des <strong>cycles journaliers réguliers</strong> avec des pics en journée (80-88%) et des creux 
+          nocturnes (54-60%). Cette régularité témoigne d'une utilisation principalement commerciale et professionnelle.
+        </p>
+      </div>
+
+      <h3 class="subsection-title">3.2 Parking Comédie</h3>
+
+      <figure class="figure">
+        <img src="./images/capture-decran-2026-01-20-173538.png" alt="Graphique d'occupation du parking Comédie" class="figure-image" onclick="openZoom(this.src, 'Parking Comédie', 'Évolution du taux d\'occupation')">
+        <figcaption class="figure-caption">
+          <strong>Figure 2</strong> — Évolution du taux d'occupation du parking Comédie (25/12/2025 - 04/01/2026)
+        </figcaption>
+      </figure>
+
+      <div class="analysis-block analysis-tendance">
+        <h4>Tendance identifiée</h4>
+        <p>
+          Le parking Comédie montre une <strong>amplitude de variation importante</strong> (27% à 90%), caractéristique 
+          d'un parking très sollicité lors des pics d'activité commerciale. Les pics les plus marqués correspondent 
+          aux journées précédant le Nouvel An, suggérant une forte attractivité pour les commerces et restaurants du centre.
+        </p>
+      </div>
+
+      <h3 class="subsection-title">3.3 Parking Gambetta</h3>
+
+      <figure class="figure">
+        <img src="./images/capture-decran-2026-01-20-172620.png" alt="Graphique d'occupation du parking Gambetta" class="figure-image" onclick="openZoom(this.src, 'Parking Gambetta', 'Évolution du taux d\'occupation')">
+        <figcaption class="figure-caption">
+          <strong>Figure 3</strong> — Évolution du taux d'occupation du parking Gambetta (25/12/2025 - 04/01/2026)
+        </figcaption>
+      </figure>
+
+      <div class="analysis-block analysis-observation">
+        <h4>Analyse du comportement</h4>
+        <p>
+          Contrairement aux deux précédents, le parking Gambetta présente un comportement plus <strong>stable</strong> 
+          avec une amplitude réduite (35% à 69%). Cette régularité peut s'expliquer par une clientèle plus résidente 
+          ou par une capacité plus adaptée à la demande locale.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION 4: PARKINGS FAIBLE OCCUPATION -->
+    <section id="parkings-faible-occupation" class="section">
+      <div class="section-header">
+        <span class="section-number">04</span>
+        <h2>Parkings à faible occupation</h2>
+      </div>
+
+      <p>
+        Plusieurs parkings de l'échantillon présentent des taux d'occupation significativement plus bas, 
+        soulevant des questions sur leur utilité ou leur accessibilité.
+      </p>
+
+      <h3 class="subsection-title">4.1 Parkings périphériques sous-utilisés</h3>
+
+      <figure class="figure">
+        <img src="./images/capture-decran-2026-01-20-173705.png" alt="Graphique d'occupation du parking Foch" class="figure-image" onclick="openZoom(this.src, 'Parking Foch', 'Occupation moyenne: 18%')">
+        <figcaption class="figure-caption">
+          <strong>Figure 4</strong> — Parking Foch : occupation moyenne de 18%
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <img src="./images/capture-decran-2026-01-20-173726.png" alt="Graphique d'occupation du parking Circé" class="figure-image" onclick="openZoom(this.src, 'Parking Circé', 'Occupation très stable')">
+        <figcaption class="figure-caption">
+          <strong>Figure 5</strong> — Parking Circé : occupation très stable autour de 18%
+        </figcaption>
+      </figure>
+
+      <div class="analysis-block analysis-alerte">
+        <h4>Point d'attention</h4>
+        <p>
+          Le parking <strong>Garcia Lorca</strong> présente l'occupation la plus faible de l'échantillon avec seulement 
+          5% en moyenne. Cette sous-utilisation chronique pose la question de la pertinence de cette infrastructure 
+          ou de son accessibilité.
+        </p>
+      </div>
+
+      <h3 class="subsection-title">4.2 Cas particulier : Mosson</h3>
+
+      <figure class="figure">
+        <img src="./images/capture-decran-2026-01-20-173648.png" alt="Graphique d'occupation du parking Mosson" class="figure-image" onclick="openZoom(this.src, 'Parking Mosson', 'Pic événementiel observé')">
+        <figcaption class="figure-caption">
+          <strong>Figure 6</strong> — Parking Mosson : pic événementiel atteignant 91%
+        </figcaption>
+      </figure>
+
+      <div class="analysis-block analysis-tendance">
+        <h4>Interprétation</h4>
+        <p>
+          Le parking Mosson, situé près du stade, montre un comportement très particulier : une occupation 
+          généralement très faible (2-16%) ponctuée d'un <strong>pic exceptionnel à 91%</strong>. Ce pic correspond 
+          vraisemblablement à un événement sportif ou culturel au stade de la Mosson.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION 5: PARKINGS CONSTANTS -->
+    <section id="parkings-constants" class="section">
+      <div class="section-header">
+        <span class="section-number">05</span>
+        <h2>Parkings à occupation constante</h2>
+      </div>
+
+      <p>
+        Deux parkings de l'échantillon présentent des comportements atypiques avec des taux d'occupation 
+        quasi-constants sur toute la période d'étude. Cette anomalie statistique mérite une analyse critique.
+      </p>
+
+      <h3 class="subsection-title">5.1 Gaumont OUEST et Gaumont-Circe</h3>
+
+      <figure class="figure">
+        <img src="./images/capture-decran-2026-01-20-171424.png" alt="Graphique d'occupation du parking Gaumont OUEST" class="figure-image" onclick="openZoom(this.src, 'Parking Gaumont OUEST', 'Occupation constante suspecte')">
+        <figcaption class="figure-caption">
+          <strong>Figure 7</strong> — Parking Gaumont OUEST : occupation constante à 97-100%
+        </figcaption>
+      </figure>
+
+      <figure class="figure">
+        <img src="./images/capture-decran-2026-01-20-171842.png" alt="Graphique d'occupation du parking Gaumont-Circe" class="figure-image" onclick="openZoom(this.src, 'Parking Gaumont-Circe', 'Occupation fixe à 60%')">
+        <figcaption class="figure-caption">
+          <strong>Figure 8</strong> — Parking Gaumont-Circe : occupation fixe à exactement 60%
+        </figcaption>
+      </figure>
+
+      <div class="analysis-block analysis-alerte">
+        <h4>Anomalie détectée</h4>
+        <p>
+          Les graphiques montrent des valeurs <strong>strictement constantes</strong> sur 10 jours, ce qui est 
+          statistiquement improbable pour un parking public. Plusieurs hypothèses peuvent expliquer cette anomalie :
+        </p>
+        <ul>
+          <li><strong>Dysfonctionnement des capteurs</strong> : les données ne sont pas actualisées</li>
+          <li><strong>Valeur par défaut</strong> : le système affiche une valeur fixe en cas d'erreur</li>
+          <li><strong>Parking fermé</strong> : l'infrastructure n'est pas en service</li>
+        </ul>
+      </div>
+
+      <div class="analysis-block analysis-conclusion">
+        <h4>Recommandation technique</h4>
+        <p>
+          Les données des parkings Gaumont OUEST et Gaumont-Circe présentent des anomalies flagrantes qui remettent 
+          en question leur fiabilité. Dans le cadre d'une étude approfondie, il serait nécessaire de contacter le 
+          service gestionnaire pour vérifier l'état des capteurs et la validité des données transmises au portail Open Data.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION 6: CATALOGUE INTERACTIF -->
+    <section id="catalogue" class="section">
+      <div class="section-header">
+        <span class="section-number">06</span>
+        <h2>Catalogue interactif des données</h2>
+      </div>
+
+      <p>
+        Cette section propose un accès structuré à l'ensemble des graphiques d'occupation. Utilisez les menus 
+        déroulants ci-dessous pour naviguer entre les différentes catégories et consulter les données individuelles 
+        de chaque parking ou station vélo.
+      </p>
+
+      <h3 class="subsection-title">6.1 Catalogue des parkings automobiles</h3>
+
+      <!-- CATALOG: PARKINGS -->
+      <div class="data-catalog" id="catalog-parkings">
+        <div class="catalog-layout">
+          <aside class="catalog-sidebar">
+            <!-- Category 1: Forte occupation -->
+            <div class="accordion-item">
+              <button class="accordion-trigger active" onclick="toggleAccordion(this)">
+                <span class="accordion-icon">▶</span>
+                <span>Parkings forte occupation</span>
+                <span class="accordion-badge">3</span>
+              </button>
+              <div class="accordion-content open">
+                <p class="accordion-desc">Parkings du centre-ville avec occupation élevée</p>
+                <button class="catalog-item active" onclick="selectCatalogItem(this, './images/capture-decran-2026-01-20-171525.png', 'Arc de Triomphe', 'Occupation moyenne: 72% - Comportement cyclique prononcé')">
+                  <span class="catalog-item-dot"></span>
+                  Arc de Triomphe
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/capture-decran-2026-01-20-173538.png', 'Comédie', 'Occupation moyenne: 52% - Pics à 90%')">
+                  <span class="catalog-item-dot"></span>
+                  Comédie
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/capture-decran-2026-01-20-172620.png', 'Gambetta', 'Occupation moyenne: 58% - Comportement stable')">
+                  <span class="catalog-item-dot"></span>
+                  Gambetta
+                </button>
+              </div>
+            </div>
+
+            <!-- Category 2: Faible occupation -->
+            <div class="accordion-item">
+              <button class="accordion-trigger" onclick="toggleAccordion(this)">
+                <span class="accordion-icon">▶</span>
+                <span>Parkings faible occupation</span>
+                <span class="accordion-badge">5</span>
+              </button>
+              <div class="accordion-content">
+                <p class="accordion-desc">Parkings périphériques sous-utilisés</p>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/capture-decran-2026-01-20-173705.png', 'Foch', 'Occupation moyenne: 18% - Sous-utilisé')">
+                  <span class="catalog-item-dot"></span>
+                  Foch
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/capture-decran-2026-01-20-173726.png', 'Circé', 'Occupation moyenne: 18% - Cycles faibles')">
+                  <span class="catalog-item-dot"></span>
+                  Circé
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/capture-decran-2026-01-20-173743.png', 'Occitanie', 'Occupation moyenne: 15% - Faibles variations')">
+                  <span class="catalog-item-dot"></span>
+                  Occitanie
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/capture-decran-2026-01-20-173629.png', 'Garcia Lorca', 'Occupation moyenne: 5% - Très sous-utilisé')">
+                  <span class="catalog-item-dot"></span>
+                  Garcia Lorca
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/capture-decran-2026-01-20-173648.png', 'Mosson', 'Occupation moyenne: 16% - Pic événementiel')">
+                  <span class="catalog-item-dot"></span>
+                  Mosson
+                </button>
+              </div>
+            </div>
+
+            <!-- Category 3: Données suspectes -->
+            <div class="accordion-item">
+              <button class="accordion-trigger" onclick="toggleAccordion(this)">
+                <span class="accordion-icon">▶</span>
+                <span>Données suspectes</span>
+                <span class="accordion-badge">2</span>
+              </button>
+              <div class="accordion-content">
+                <p class="accordion-desc">Parkings présentant des anomalies</p>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/capture-decran-2026-01-20-171424.png', 'Gaumont OUEST', 'Occupation constante à 97-100% - Anomalie suspectée')">
+                  <span class="catalog-item-dot"></span>
+                  Gaumont OUEST
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/capture-decran-2026-01-20-171842.png', 'Gaumont-Circe', 'Occupation constante à 60% - Anomalie suspectée')">
+                  <span class="catalog-item-dot"></span>
+                  Gaumont-Circe
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <div class="catalog-main">
+            <div class="catalog-display" id="display-parkings">
+              <div class="catalog-display-header">
+                <div>
+                  <div class="catalog-display-title" id="parkings-title">Arc de Triomphe</div>
+                  <p class="catalog-display-desc" id="parkings-desc">Occupation moyenne: 72% - Comportement cyclique prononcé</p>
+                </div>
+                <button class="btn-zoom" onclick="openZoomFromCatalog('parkings')">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                  </svg>
+                  Agrandir
+                </button>
+              </div>
+              <div class="catalog-display-image" onclick="openZoomFromCatalog('parkings')">
+                <img src="./images/capture-decran-2026-01-20-171525.png" alt="Graphique sélectionné" id="parkings-image">
+              </div>
+            </div>
+            <div class="catalog-caption">
+              <strong>Figure 9</strong> — Catalogue interactif des données d'occupation des parkings de Montpellier (25/12/2025 - 04/01/2026)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="analysis-block analysis-observation">
+        <h4>Guide de lecture du catalogue</h4>
+        <p>Les parkings sont organisés en trois catégories selon leur comportement observé :</p>
+        <ul>
+          <li><strong>Forte occupation</strong> : Parkings centraux avec cycles marqués et pics réguliers</li>
+          <li><strong>Faible occupation</strong> : Parkings périphériques sous-utilisés</li>
+          <li><strong>Données suspectes</strong> : Parkings présentant des anomalies nécessitant vérification</li>
+        </ul>
+      </div>
+
+      <h3 class="subsection-title">6.2 Catalogue des stations vélos VéloMagg</h3>
+
+      <!-- CATALOG: VELOS -->
+      <div class="data-catalog" id="catalog-velos">
+        <div class="catalog-layout">
+          <aside class="catalog-sidebar">
+            <!-- Category 1: Variable -->
+            <div class="accordion-item">
+              <button class="accordion-trigger active" onclick="toggleAccordion(this)">
+                <span class="accordion-icon">▶</span>
+                <span>Stations à occupation variable</span>
+                <span class="accordion-badge">7</span>
+              </button>
+              <div class="accordion-content open">
+                <p class="accordion-desc">Stations présentant des variations significatives</p>
+                <button class="catalog-item active" onclick="selectCatalogItem(this, './images/velo-foch.png', 'Foch', 'Paliers à 0%, 12%, 25%, 37% - Petite capacité')">
+                  <span class="catalog-item-dot"></span>
+                  Foch
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-tonnelles.png', 'Tonnelles', 'Progression de 50% à 100% - Accumulation')">
+                  <span class="catalog-item-dot"></span>
+                  Tonnelles
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-sud-de-france.png', 'Sud De France', 'Variations 12-50% - Station gare TGV')">
+                  <span class="catalog-item-dot"></span>
+                  Sud De France
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-jardin-lironde.png', 'Jardin de la Lironde', 'Forte variabilité 0-75%')">
+                  <span class="catalog-item-dot"></span>
+                  Jardin de la Lironde
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-sabines.png', 'Sabines', 'Oscillations 62-100%')">
+                  <span class="catalog-item-dot"></span>
+                  Sabines
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-voltaire.png', 'Voltaire', 'Variations 12-75%')">
+                  <span class="catalog-item-dot"></span>
+                  Voltaire
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-port-marianne.png', 'Port Marianne', 'Déclin de 50% à 0%')">
+                  <span class="catalog-item-dot"></span>
+                  Port Marianne
+                </button>
+              </div>
+            </div>
+
+            <!-- Category 2: Saturées -->
+            <div class="accordion-item">
+              <button class="accordion-trigger" onclick="toggleAccordion(this)">
+                <span class="accordion-icon">▶</span>
+                <span>Stations saturées (100%)</span>
+                <span class="accordion-badge">5</span>
+              </button>
+              <div class="accordion-content">
+                <p class="accordion-desc">Stations affichant 100% constant</p>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-odysseum.png', 'Odysseum', '100% constant - Saturation ou anomalie')">
+                  <span class="catalog-item-dot"></span>
+                  Odysseum
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-comedie-baudin.png', 'Comédie Baudin', '100% constant - Centre-ville')">
+                  <span class="catalog-item-dot"></span>
+                  Comédie Baudin
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-halles-castellane.png', 'Halles Castellane', '100% constant - Zone commerciale')">
+                  <span class="catalog-item-dot"></span>
+                  Halles Castellane
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-deux-ponts.png', 'Deux Ponts - Gare Saint-Roch', '100% constant - Gare centrale')">
+                  <span class="catalog-item-dot"></span>
+                  Deux Ponts
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-saint-denis.png', 'Saint-Denis', '100% constant - Quartier résidentiel')">
+                  <span class="catalog-item-dot"></span>
+                  Saint-Denis
+                </button>
+              </div>
+            </div>
+
+            <!-- Category 3: Moyennes -->
+            <div class="accordion-item">
+              <button class="accordion-trigger" onclick="toggleAccordion(this)">
+                <span class="accordion-icon">▶</span>
+                <span>Moyennes journalières</span>
+                <span class="accordion-badge">3</span>
+              </button>
+              <div class="accordion-content">
+                <p class="accordion-desc">Évolution jour par jour</p>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-jean-de-beins.png', 'Jean de Beins', 'Pic 93% le 28/12, déclin à 45%')">
+                  <span class="catalog-item-dot"></span>
+                  Jean de Beins
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-pres-arenes.png', 'Prés d\'Arènes', 'Pic 72% le 28/12, déclin à 25%')">
+                  <span class="catalog-item-dot"></span>
+                  Prés d'Arènes
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/velo-corum.png', 'Corum', 'Creux 27% le 30/12, remontée à 73%')">
+                  <span class="catalog-item-dot"></span>
+                  Corum
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <div class="catalog-main">
+            <div class="catalog-display" id="display-velos">
+              <div class="catalog-display-header">
+                <div>
+                  <div class="catalog-display-title" id="velos-title">Foch</div>
+                  <p class="catalog-display-desc" id="velos-desc">Paliers à 0%, 12%, 25%, 37% - Petite capacité</p>
+                </div>
+                <button class="btn-zoom" onclick="openZoomFromCatalog('velos')">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                  </svg>
+                  Agrandir
+                </button>
+              </div>
+              <div class="catalog-display-image" onclick="openZoomFromCatalog('velos')">
+                <img src="./images/velo-foch.png" alt="Graphique sélectionné" id="velos-image">
+              </div>
+            </div>
+            <div class="catalog-caption">
+              <strong>Figure 10</strong> — Catalogue interactif des données d'occupation des stations VéloMagg (25/12/2025 - 04/01/2026)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="analysis-block analysis-observation">
+        <h4>Analyse des stations vélos</h4>
+        <p>L'analyse des 15 stations vélos révèle trois comportements distincts :</p>
+        <ul>
+          <li><strong>Stations variables</strong> : Variations en paliers caractéristiques des petites capacités (8-16 vélos)</li>
+          <li><strong>Stations saturées</strong> : 100% constant, suggérant saturation réelle ou anomalie capteur</li>
+          <li><strong>Moyennes journalières</strong> : Tendances globales avec pic autour du 28/12 puis déclin</li>
+        </ul>
+      </div>
+
+      <h3 class="subsection-title">6.3 Statistiques et classements comparatifs</h3>
+
+      <!-- CATALOG: STATS -->
+      <div class="data-catalog" id="catalog-stats">
+        <div class="catalog-layout">
+          <aside class="catalog-sidebar">
+            <!-- Statistiques Parkings -->
+            <div class="accordion-item">
+              <button class="accordion-trigger active" onclick="toggleAccordion(this)">
+                <span class="accordion-icon">▶</span>
+                <span>Statistiques Parkings</span>
+                <span class="accordion-badge">5</span>
+              </button>
+              <div class="accordion-content open">
+                <p class="accordion-desc">Classements et indicateurs</p>
+                <button class="catalog-item active" onclick="selectCatalogItem(this, './images/stats-parking-tension.png', 'Indice de tension', 'Classement du pire au meilleur')">
+                  <span class="catalog-item-dot"></span>
+                  Indice de tension
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/stats-parking-p90.png', 'Percentile 90 (p90)', '90% du temps sous ce taux')">
+                  <span class="catalog-item-dot"></span>
+                  Percentile 90
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/stats-parking-p95.png', 'Percentile 95 (p95)', '95% du temps sous ce taux')">
+                  <span class="catalog-item-dot"></span>
+                  Percentile 95
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/stats-parking-p99.png', 'Percentile 99 (p99)', '99% du temps sous ce taux')">
+                  <span class="catalog-item-dot"></span>
+                  Percentile 99
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/stats-parking-minmax.png', 'Min / Max occupation', 'Amplitude des variations')">
+                  <span class="catalog-item-dot"></span>
+                  Min / Max
+                </button>
+              </div>
+            </div>
+
+            <!-- Statistiques Vélos -->
+            <div class="accordion-item">
+              <button class="accordion-trigger" onclick="toggleAccordion(this)">
+                <span class="accordion-icon">▶</span>
+                <span>Statistiques Stations Vélos</span>
+                <span class="accordion-badge">4</span>
+              </button>
+              <div class="accordion-content">
+                <p class="accordion-desc">Classements stations vélos</p>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/stats-velo-fiabilite.png', 'Indice de fiabilité', 'Qualité des données')">
+                  <span class="catalog-item-dot"></span>
+                  Indice de fiabilité
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/stats-velo-p90.png', 'Percentile 90 (p90)', '59 stations analysées')">
+                  <span class="catalog-item-dot"></span>
+                  Percentile 90
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/stats-velo-p95.png', 'Percentile 95 (p95)', 'Pics d\'occupation')">
+                  <span class="catalog-item-dot"></span>
+                  Percentile 95
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/stats-velo-minmax.png', 'Min / Max occupation', 'Amplitude par station')">
+                  <span class="catalog-item-dot"></span>
+                  Min / Max
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <div class="catalog-main">
+            <div class="catalog-display" id="display-stats">
+              <div class="catalog-display-header">
+                <div>
+                  <div class="catalog-display-title" id="stats-title">Indice de tension</div>
+                  <p class="catalog-display-desc" id="stats-desc">Classement du pire au meilleur</p>
+                </div>
+                <button class="btn-zoom" onclick="openZoomFromCatalog('stats')">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                  </svg>
+                  Agrandir
+                </button>
+              </div>
+              <div class="catalog-display-image" onclick="openZoomFromCatalog('stats')">
+                <img src="./images/stats-parking-tension.png" alt="Graphique sélectionné" id="stats-image">
+              </div>
+            </div>
+            <div class="catalog-caption">
+              <strong>Figure 11</strong> — Statistiques comparatives des parkings et stations vélos
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="subsection-title">6.4 Analyse croisée : Parkings et stations vélos proches</h3>
+
+      <!-- CATALOG: ANALYSE CROISEE -->
+      <div class="data-catalog" id="catalog-croise">
+        <div class="catalog-layout">
+          <aside class="catalog-sidebar">
+            <!-- Centre-ville -->
+            <div class="accordion-item">
+              <button class="accordion-trigger active" onclick="toggleAccordion(this)">
+                <span class="accordion-icon">▶</span>
+                <span>Centre-ville</span>
+                <span class="accordion-badge">6</span>
+              </button>
+              <div class="accordion-content open">
+                <p class="accordion-desc">Zones centrales</p>
+                <button class="catalog-item active" onclick="selectCatalogItem(this, './images/croise-comedie.png', 'Comédie', 'Parking vs Comédie + Halles Castellane')">
+                  <span class="catalog-item-dot"></span>
+                  Comédie
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-corum.png', 'Corum', 'Parking vs Corum + Louis Blanc + Beaux-Arts')">
+                  <span class="catalog-item-dot"></span>
+                  Corum
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-gambetta.png', 'Gambetta', 'Parking vs Gambetta + Renouvier + Plan Cabanes')">
+                  <span class="catalog-item-dot"></span>
+                  Gambetta
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-triangle.png', 'Triangle', 'Parking vs Comédie + Nombre d\'Or')">
+                  <span class="catalog-item-dot"></span>
+                  Triangle
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-arc-triomphe.png', 'Arc de Triomphe', 'Parking vs Foch + Saint-Guilhem + Les Arceaux')">
+                  <span class="catalog-item-dot"></span>
+                  Arc de Triomphe
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-polygone.png', 'Polygone', 'Parking vs Nombre d\'Or + Antigone')">
+                  <span class="catalog-item-dot"></span>
+                  Polygone
+                </button>
+              </div>
+            </div>
+
+            <!-- Antigone -->
+            <div class="accordion-item">
+              <button class="accordion-trigger" onclick="toggleAccordion(this)">
+                <span class="accordion-icon">▶</span>
+                <span>Antigone / Port Marianne</span>
+                <span class="accordion-badge">3</span>
+              </button>
+              <div class="accordion-content">
+                <p class="accordion-desc">Quartiers est</p>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-antigone.png', 'Antigone', 'Parking vs Antigone centre + Médiathèque')">
+                  <span class="catalog-item-dot"></span>
+                  Antigone
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-circe-gaumont.png', 'Circé / Gaumont', 'Parking vs Odysseum + Jardin Lironde')">
+                  <span class="catalog-item-dot"></span>
+                  Circé / Gaumont
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-vicarello.png', 'Vicarello', 'Parking vs Richter + Port Marianne')">
+                  <span class="catalog-item-dot"></span>
+                  Vicarello
+                </button>
+              </div>
+            </div>
+
+            <!-- Gares -->
+            <div class="accordion-item">
+              <button class="accordion-trigger" onclick="toggleAccordion(this)">
+                <span class="accordion-icon">▶</span>
+                <span>Proximité Gares</span>
+                <span class="accordion-badge">4</span>
+              </button>
+              <div class="accordion-content">
+                <p class="accordion-desc">Zones gares et hôpitaux</p>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-gare.png', 'Gare Saint-Roch', 'Parking vs Nouveau Saint-Roch')">
+                  <span class="catalog-item-dot"></span>
+                  Gare Saint-Roch
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-europa.png', 'Europa', 'Parking vs Antigone + Médiathèque + St-Roch')">
+                  <span class="catalog-item-dot"></span>
+                  Europa
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-montpellier.png', 'Montpellier Centre', 'Parking vs Cité Mion + Nouveau St-Roch')">
+                  <span class="catalog-item-dot"></span>
+                  Montpellier Centre
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-euromedecine.png', 'Euromédecine', 'Parking vs Euromédecine + Malbosc')">
+                  <span class="catalog-item-dot"></span>
+                  Euromédecine
+                </button>
+              </div>
+            </div>
+
+            <!-- Périphérie -->
+            <div class="accordion-item">
+              <button class="accordion-trigger" onclick="toggleAccordion(this)">
+                <span class="accordion-icon">▶</span>
+                <span>Zones périphériques</span>
+                <span class="accordion-badge">6</span>
+              </button>
+              <div class="accordion-content">
+                <p class="accordion-desc">Périphérie et zones sportives</p>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-foch.png', 'Foch', 'Parking vs Foch + Saint-Guilhem + Albert 1er')">
+                  <span class="catalog-item-dot"></span>
+                  Foch
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-pitot.png', 'Pitot', 'Parking vs Les Arceaux + Foch')">
+                  <span class="catalog-item-dot"></span>
+                  Pitot
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-mosson.png', 'Mosson', 'Parking vs Tonnelles + Celleneuve')">
+                  <span class="catalog-item-dot"></span>
+                  Mosson
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-sabines.png', 'Sabines', 'Parking vs Sabines + Providence-Ovalie')">
+                  <span class="catalog-item-dot"></span>
+                  Sabines
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-garcia-lorca.png', 'Garcia Lorca', 'Parking vs Garcia Lorca + Prés d\'Arènes')">
+                  <span class="catalog-item-dot"></span>
+                  Garcia Lorca
+                </button>
+                <button class="catalog-item" onclick="selectCatalogItem(this, './images/croise-charles-gaulle.png', 'Charles de Gaulle', 'Parking vs Corum + Les Aubes')">
+                  <span class="catalog-item-dot"></span>
+                  Charles de Gaulle
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <div class="catalog-main">
+            <div class="catalog-display" id="display-croise">
+              <div class="catalog-display-header">
+                <div>
+                  <div class="catalog-display-title" id="croise-title">Comédie</div>
+                  <p class="catalog-display-desc" id="croise-desc">Parking vs Comédie + Halles Castellane</p>
+                </div>
+                <button class="btn-zoom" onclick="openZoomFromCatalog('croise')">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                  </svg>
+                  Agrandir
+                </button>
+              </div>
+              <div class="catalog-display-image" onclick="openZoomFromCatalog('croise')">
+                <img src="./images/croise-comedie.png" alt="Graphique sélectionné" id="croise-image">
+              </div>
+            </div>
+            <div class="catalog-caption">
+              <strong>Figure 12</strong> — Analyse croisée de l'occupation moyenne journalière : parkings vs stations vélos proches
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="analysis-block analysis-tendance">
+        <h4>Interprétation intermodale</h4>
+        <p>
+          Ces graphiques mettent en évidence une <strong>complémentarité partielle</strong> entre les modes de transport. 
+          Dans le centre-ville, la hausse simultanée des occupations parking et vélo autour du Nouvel An suggère une 
+          augmentation globale de la fréquentation plutôt qu'un report modal. En revanche, la décroissance progressive 
+          de certaines stations vélos (Jardin de la Lironde, Port Marianne) alors que les parkings restent stables 
+          pourrait indiquer un abandon temporaire du vélo pendant les fêtes au profit de la voiture.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION 7: SYNTHESE -->
+    <section id="synthese" class="section">
+      <div class="section-header">
+        <span class="section-number">07</span>
+        <h2>Synthèse et conclusions</h2>
+      </div>
+
+      <p>
+        Cette analyse des données d'occupation des parkings et stations vélos de Montpellier permet de dégager 
+        plusieurs enseignements majeurs et de formuler des recommandations pour l'optimisation de l'offre de mobilité urbaine.
+      </p>
+
+      <h3 class="subsection-title">7.1 Principaux enseignements</h3>
+
+      <div class="type-block type-block-blue">
+        <h4 style="color: var(--color-primary); margin-bottom: 1rem;">Typologie des parkings :</h4>
+        <div class="type-item">
+          <span class="type-label">Type A — Forte demande cyclique :</span>
+          <span class="type-value">Arc de Triomphe, Comédie. Occupation élevée avec cycles journaliers marqués.</span>
+        </div>
+        <div class="type-item">
+          <span class="type-label">Type B — Demande stable :</span>
+          <span class="type-value">Gambetta. Occupation modérée et régulière.</span>
+        </div>
+        <div class="type-item">
+          <span class="type-label">Type C — Sous-utilisation chronique :</span>
+          <span class="type-value">Foch, Circé, Occitanie, Garcia Lorca. Occupation faible constante.</span>
+        </div>
+        <div class="type-item">
+          <span class="type-label">Type D — Usage événementiel :</span>
+          <span class="type-value">Mosson. Faible occupation avec pics ponctuels.</span>
+        </div>
+        <div class="type-item">
+          <span class="type-label">Type E — Données suspectes :</span>
+          <span class="type-value">Gaumont OUEST, Gaumont-Circe. Occupation constante suggérant un problème technique.</span>
+        </div>
+      </div>
+
+      <div class="type-block type-block-green">
+        <h4 style="color: #15803d; margin-bottom: 1rem;">Observations sur les stations vélos :</h4>
+        <p style="color: var(--color-text-muted); margin: 0;">
+          L'analyse des stations VéloMagg révèle une <strong>tendance à la saturation</strong> pendant la période des fêtes, 
+          avec de nombreuses stations affichant 100% d'occupation. Ce phénomène est cohérent avec la baisse de mobilité 
+          douce en période hivernale et pendant les vacances. Les quelques stations à occupation variable (Foch, Tonnelles, 
+          Sud De France) montrent des comportements en paliers caractéristiques de stations à faible capacité.
+        </p>
+      </div>
+
+      <h3 class="subsection-title">7.2 Recommandations</h3>
+
+      <ol style="padding-left: 1.5rem; color: var(--color-text-muted);">
+        <li style="margin-bottom: 0.75rem;">
+          <strong>Audit technique</strong> : Vérifier les capteurs des parkings Gaumont OUEST et Gaumont-Circe 
+          ainsi que des stations vélos à 100% constant.
+        </li>
+        <li style="margin-bottom: 0.75rem;">
+          <strong>Optimisation tarifaire</strong> : Envisager une tarification dynamique pour les parkings 
+          sous-utilisés (Garcia Lorca, Occitanie) afin d'attirer les automobilistes.
+        </li>
+        <li style="margin-bottom: 0.75rem;">
+          <strong>Signalétique</strong> : Améliorer l'orientation vers les parkings périphériques disposant 
+          de capacités inexploitées.
+        </li>
+        <li style="margin-bottom: 0.75rem;">
+          <strong>Étude complémentaire</strong> : Analyser le cas du parking Garcia Lorca pour comprendre 
+          les raisons de sa sous-utilisation.
+        </li>
+        <li style="margin-bottom: 0.75rem;">
+          <strong>Optimisation VéloMagg</strong> : Renforcer les opérations de redistribution des vélos 
+          pendant les périodes de faible utilisation.
+        </li>
+      </ol>
+
+      <h3 class="subsection-title">7.3 Limites de l'étude</h3>
+
+      <ul style="padding-left: 1.5rem; color: var(--color-text-muted);">
+        <li style="margin-bottom: 0.5rem;">La période étudiée (fêtes de fin d'année) n'est pas représentative de l'activité habituelle</li>
+        <li style="margin-bottom: 0.5rem;">Certaines données semblent erronées (parkings Gaumont, plusieurs stations vélos), réduisant la fiabilité</li>
+        <li style="margin-bottom: 0.5rem;">L'absence de données sur la capacité totale limite les comparaisons</li>
+        <li style="margin-bottom: 0.5rem;">Les données météorologiques et événementielles n'ont pas été intégrées</li>
+        <li style="margin-bottom: 0.5rem;">L'échantillon de stations vélos est limité et ne couvre pas l'ensemble du réseau</li>
+      </ul>
+
+      <div class="analysis-block analysis-conclusion">
+        <h4>Conclusion générale</h4>
+        <p>
+          Cette analyse démontre l'intérêt des données Open Data pour comprendre les dynamiques de mobilité urbaine. 
+          Malgré les limites identifiées, les tendances observées permettent de formuler des recommandations concrètes 
+          pour l'optimisation du réseau de stationnement et de vélos partagés de Montpellier. Une étude plus approfondie, 
+          sur une période plus longue et avec des données corrigées, permettrait d'affiner ces conclusions.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <p>
+        <strong>Projet SAE — BUT Informatique</strong><br>
+        Analyse de données Open Data : Parkings et Stations Vélos • Montpellier Méditerranée Métropole<br>
+        Données collectées du 25 décembre 2025 au 4 janvier 2026
+      </p>
+    </div>
+  </footer>
+
+  <!-- ZOOM MODAL -->
+  <div class="zoom-modal" id="zoomModal" onclick="closeZoom()">
+    <button class="zoom-modal-close" onclick="closeZoom()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+    <div class="zoom-modal-info">
+      <div class="zoom-modal-title" id="zoomTitle"></div>
+      <div class="zoom-modal-desc" id="zoomDesc"></div>
+    </div>
+    <img src="" alt="Image agrandie" class="zoom-modal-image" id="zoomImage" onclick="event.stopPropagation()">
+    <div class="zoom-modal-hint">Appuyez sur Échap ou cliquez en dehors pour fermer</div>
+  </div>
+
+  <!-- JAVASCRIPT -->
+  <script>
+    // ========== ACCORDION ==========
+    function toggleAccordion(trigger) {
+      const content = trigger.nextElementSibling;
+      const isOpen = content.classList.contains('open');
+      
+      // Close all accordions in this catalog
+      const catalog = trigger.closest('.data-catalog');
+      catalog.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('open'));
+      catalog.querySelectorAll('.accordion-trigger').forEach(t => t.classList.remove('active'));
+      
+      // Open clicked one if it was closed
+      if (!isOpen) {
+        content.classList.add('open');
+        trigger.classList.add('active');
+      }
+    }
+
+    // ========== CATALOG ITEM SELECTION ==========
+    function selectCatalogItem(button, imageSrc, title, description) {
+      // Find the parent catalog
+      const catalog = button.closest('.data-catalog');
+      const catalogId = catalog.id;
+      const prefix = catalogId.replace('catalog-', '');
+      
+      // Update active state
+      catalog.querySelectorAll('.catalog-item').forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      
+      // Update display
+      document.getElementById(`${prefix}-title`).textContent = title;
+      document.getElementById(`${prefix}-desc`).textContent = description;
+      document.getElementById(`${prefix}-image`).src = imageSrc;
+    }
+
+    // ========== ZOOM MODAL ==========
+    function openZoom(imageSrc, title, description) {
+      const modal = document.getElementById('zoomModal');
+      document.getElementById('zoomImage').src = imageSrc;
+      document.getElementById('zoomTitle').textContent = title || '';
+      document.getElementById('zoomDesc').textContent = description || '';
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function openZoomFromCatalog(prefix) {
+      const title = document.getElementById(`${prefix}-title`).textContent;
+      const desc = document.getElementById(`${prefix}-desc`).textContent;
+      const imageSrc = document.getElementById(`${prefix}-image`).src;
+      openZoom(imageSrc, title, desc);
+    }
+
+    function closeZoom() {
+      const modal = document.getElementById('zoomModal');
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeZoom();
+      }
+    });
+
+    // Smooth scroll for table of contents
+    document.querySelectorAll('.toc-list a').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href').substring(1);
+        const target = document.getElementById(targetId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>
